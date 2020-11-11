@@ -4,6 +4,7 @@ namespace IpApi.Models
 {
     public class IpResult
     {
-        public Dictionary<string, object> ServiceResults { get; set; } = new Dictionary<string, object>();
+        public IpSummary Summary { get; set; }
+        public Dictionary<string, object> DetailedResults { get; set; } = new Dictionary<string, object>();
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using IpCommon;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Net.NetworkInformation;
@@ -8,9 +9,15 @@ namespace IpWorker.Services
 {
     class PingService : IService
     {
+        private ILogger<PingService> _logger;
         public string Name => "ping";
 
-        public Task<object> ProcessIp(string ip)
+        public PingService(ILogger<PingService> logger)
+        {
+            _logger = logger;
+        }
+
+        public Task<object> ProcessData(string data)
         {
             const int PING_COUNT = 3;
 
@@ -21,7 +28,7 @@ namespace IpWorker.Services
             {
                 for (int i = 0; i < PING_COUNT; i++)
                 {
-                    var reply = pinger.Send(ip);
+                    var reply = pinger.Send(data);
                     replies.Add(new
                     {
                         Status = reply.Status.ToString(),
@@ -31,9 +38,13 @@ namespace IpWorker.Services
                     });
                 }
             }
-            catch (Exception)
+            catch (PingException e)
             {
-                result.Error = $"Failed to sucessfully ping object {PING_COUNT} times.";
+                // The ServiceError class isn't used here because there could 
+                result.Error = ServiceErrorType.ServiceFailed.ToString();
+                result.Reason = $"Failed to sucessfully ping object.";
+
+                _logger.LogError(e, "Failed to send ping for ip " + data);
             }
             result.Replies = replies;
 

@@ -9,7 +9,7 @@ namespace IpWorker.Services
 {
     class ReverseDnsService : IService
     {
-        private const string BASE_URL = "https://dnspropagation.net/reverse-dns-lookup/?parameter=PTR&url=";
+        private const string BASE_URL = "https://dnspropagation.net/reverse-dns-lookup/";
         private HttpClient _client;
 
         public string Name => "reversedns";
@@ -19,13 +19,13 @@ namespace IpWorker.Services
             _client = client;
         }
 
-        public async Task<object> ProcessIp(string ip)
+        public async Task<object> ProcessData(string data)
         {
             var httpContent = new FormUrlEncodedContent(new Dictionary<string, string> {
                 { "parameter", "PTR" },
-                { "url", ip }
+                { "url", data }
             });
-            var content = await _client.PostAsync(new Uri(BASE_URL + ip), httpContent);
+            var content = await _client.PostAsync(new Uri(BASE_URL + data), httpContent);
             return JsonSerializer.Deserialize<ExpandoObject>(await content.Content.ReadAsStringAsync());
         }
     }

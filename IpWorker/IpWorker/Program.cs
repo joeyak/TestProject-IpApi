@@ -34,6 +34,12 @@ namespace IpWorker
                         case "reversedns":
                             services.AddTransient<IService, ReverseDnsService>();
                             break;
+                        case "ipapi":
+                            services.AddTransient<IService, IpApiService>();
+                            break;
+                        case "weather":
+                            services.AddTransient<IService, WeatherService>();
+                            break;
                         default:
                             throw new Exception(service + " does not exist.");
                     }

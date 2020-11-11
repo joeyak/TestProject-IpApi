@@ -5,6 +5,6 @@ namespace IpWorker.Services
     public interface IService
     {
         string Name { get; }
-        Task<object> ProcessIp(string ip);
+        Task<object> ProcessData(string data);
     }
 }

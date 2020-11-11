@@ -1,27 +1,12 @@
-﻿using System;
-using System.Dynamic;
-using System.Net.Http;
-using System.Text.Json;
-using System.Threading.Tasks;
+﻿using System.Net.Http;
 
 namespace IpWorker.Services
 {
-    class RdapService : IService
+    class RdapService : SimpleGetService
     {
-        private const string BASE_URL = "https://rdap.org/ip/";
-        private HttpClient _client;
+        protected override string BASE_URL => "https://rdap.org/ip/";
+        public override string Name => "rdap";
 
-        public string Name => "rdap";
-
-        public RdapService(HttpClient client)
-        {
-            _client = client;
-        }
-
-        public async Task<object> ProcessIp(string ip)
-        {
-            var content = await _client.GetStringAsync(new Uri(BASE_URL + ip));
-            return JsonSerializer.Deserialize<ExpandoObject>(content);
-        }
+        public RdapService(HttpClient client) : base(client) { }
     }
 }

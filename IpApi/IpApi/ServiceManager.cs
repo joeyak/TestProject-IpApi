@@ -30,24 +30,19 @@ namespace IpApi
             _timeoutLength = Convert.ToInt32(configuration["ServiceTimeout"]);
         }
 
-        public Dictionary<string, object> SendIp(List<string> services, string ip, CancellationToken token = default)
+        public Dictionary<string, object> SendIp(List<string> services, string ip, string sessionId = null)
         {
-            var sessionID = Guid.NewGuid().ToString();
             var data = new ConcurrentDictionary<string, object>();
 
-            var options = new ParallelOptions
-            {
-                CancellationToken = token,
-                MaxDegreeOfParallelism = 4,
-            };
-            Parallel.ForEach(services, options, s => data.TryAdd(s, SendMessage(sessionID, ip, s)));
+            Parallel.ForEach(services, s => data.TryAdd(s, SendMessage(s, ip, sessionId)));
 
             return new Dictionary<string, object>(data);
         }
 
-        private object SendMessage(string sessionID, string ip, string service)
+        public object SendMessage(string service, string ip, string sessionId = null)
         {
-            var returnQueue = $"{service}-{sessionID}";
+            sessionId ??= Guid.NewGuid().ToString();
+            var returnQueue = $"{service}-{sessionId}";
 
             using var channel = _connection.CreateModel();
             channel.QueueDeclare(
@@ -61,7 +56,7 @@ namespace IpApi
                 exclusive: false,
                 autoDelete: true);
 
-            string outMsg = JsonSerializer.Serialize(new ServiceProcessRequest { Ip = ip });
+            string outMsg = JsonSerializer.Serialize(new ServiceProcessRequest { Data = ip });
             var properties = channel.CreateBasicProperties();
             properties.Expiration = (_timeoutLength * 1.5).ToString();
             properties.ReplyTo = returnQueue;
@@ -75,7 +70,7 @@ namespace IpApi
                 result = Encoding.UTF8.GetString(ea.Body.ToArray());
                 signal.Set();
 
-                _logger.LogDebug($"[{sessionID}]({ip}, {service}) {result}");
+                _logger.LogDebug($"[{sessionId}]({ip}, {service}) {result}");
             };
 
             channel.BasicPublish(

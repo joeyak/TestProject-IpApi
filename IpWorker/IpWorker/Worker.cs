@@ -63,7 +63,7 @@ namespace IpWorker
                 object serviceResult = null;
                 try
                 {
-                    serviceResult = await _service.ProcessIp(request.Ip);
+                    serviceResult = await _service.ProcessData(request.Data);
                 }
                 catch (Exception e)
                 {
