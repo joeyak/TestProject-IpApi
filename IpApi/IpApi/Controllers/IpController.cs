@@ -6,7 +6,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace IpApi.Controllers
@@ -19,6 +21,10 @@ namespace IpApi.Controllers
         private const string WEATHER_NAME = "weather";
         private const string GEOIP_NAME = "geoip";
         private const string IPAPI_NAME = "ipapi";
+        private const string RDAP_NAME = "rdap";
+        private const string PING_NAME = "ping";
+        private const string RDNS_NAME = "reversedns";
+
 
         private readonly IConfiguration _configuration;
         private readonly ILogger<IpController> _logger;
@@ -143,7 +149,98 @@ namespace IpApi.Controllers
         private IpSummary MapSummary(Dictionary<string, object> data)
         {
             var summary = new IpSummary();
-            summary.ProcessedServices = data.Keys.ToList();
+
+            foreach (var kvp in data)
+            {
+                string service = kvp.Key;
+
+                if (kvp.Value is ServiceError)
+                {
+                    summary.FailedServices.Add(service);
+                    continue;
+                }
+                else
+                {
+                    summary.ProcessedServices.Add(service);
+                }
+
+                // Serialize and Deserialize so the issue of getting either an ExpandoObject or JsonElement doesn't occcur
+                var element = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(kvp.Value));
+                JsonElement GetProp(string name) => element.GetProperty(name);
+
+                // GeoIP coords are more accurate so they overwrite IpApi
+                if (service == GEOIP_NAME)
+                {
+                    summary.Latitude = GetProp("latitude").GetDouble();
+                    summary.Longitude = GetProp("longitude").GetDouble();
+                }
+
+                if (service == IPAPI_NAME)
+                {
+                    summary.Latitude ??= GetProp("lat").GetDouble();
+                    summary.Longitude ??= GetProp("lon").GetDouble();
+
+                    summary.Country = GetProp("country").GetString();
+                    summary.Region = GetProp("region").GetString();
+                    summary.City = GetProp("city").GetString();
+                    summary.Timezone = GetProp("timezone").GetString();
+                    summary.ServiceProvider = GetProp("isp").GetString();
+                }
+
+                if (service == PING_NAME)
+                {
+                    var avg = GetProp("Replies")
+                        .EnumerateArray()
+                        .Average(x => x.GetProperty("Time").GetInt32());
+                    summary.AveragePingTime = (int)Math.Round(avg);
+                }
+
+                if (service == RDAP_NAME)
+                {
+                    string GetEvent(string action)
+                    {
+                        try
+                        {
+                            return GetProp("events")
+                                .EnumerateArray()
+                                .SingleOrDefault(x => x.GetProperty("eventAction").GetString() == action)
+                                .GetProperty("eventDate")
+                                .GetString();
+                        }
+                        catch
+                        {
+                            return null;
+                        }
+                    }
+
+                    summary.DomainStatus = GetProp("status")
+                        .EnumerateArray()
+                        .FirstOrDefault()
+                        .GetString();
+                    summary.DomainRegistration = GetEvent("registration");
+                    summary.DomainLastChanged = GetEvent("last changed");
+                }
+
+                if (service == RDNS_NAME)
+                {
+                    summary.WebsiteDomain = GetProp("data")
+                        .EnumerateArray()
+                        .FirstOrDefault()
+                        .GetString();
+                }
+
+                if (service == WEATHER_NAME)
+                {
+                    // Fun note: IpApi, GeoIp, and Weather services all give different
+                    // lat/longs so....who knows where this weather is...but it demonstrates
+                    // workflow so that's good.
+                    summary.Weather = GetProp("consolidated_weather")
+                        .EnumerateArray()
+                        .FirstOrDefault()
+                        .GetProperty("weather_state_name")
+                        .GetString();
+                }
+            }
 
             return summary;
         }
