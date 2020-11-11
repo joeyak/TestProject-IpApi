@@ -1,32 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Dynamic;
-using System.Net.Http;
-using System.Text.Json;
-using System.Threading.Tasks;
+﻿using System.Net.Http;
 
 namespace IpWorker.Services
 {
-    class ReverseDnsService : IService
+    class ReverseDnsService : SimpleHttpClientService
     {
-        private const string BASE_URL = "https://dnspropagation.net/reverse-dns-lookup/";
-        private HttpClient _client;
+        protected override string BASE_URL => "https://dnspropagation.net/reverse-dns-lookup/?parameter=PTR&url=";
+        protected override HttpMethod Method => HttpMethod.Post;
+        public override string Name => "reversedns";
 
-        public string Name => "reversedns";
-
-        public ReverseDnsService(HttpClient client)
-        {
-            _client = client;
-        }
-
-        public async Task<object> ProcessData(string data)
-        {
-            var httpContent = new FormUrlEncodedContent(new Dictionary<string, string> {
-                { "parameter", "PTR" },
-                { "url", data }
-            });
-            var content = await _client.PostAsync(new Uri(BASE_URL + data), httpContent);
-            return JsonSerializer.Deserialize<ExpandoObject>(await content.Content.ReadAsStringAsync());
-        }
+        public ReverseDnsService(HttpClient client) : base(client) { }
     }
 }

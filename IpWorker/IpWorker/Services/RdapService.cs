@@ -2,7 +2,7 @@
 
 namespace IpWorker.Services
 {
-    class RdapService : SimpleGetService
+    class RdapService : SimpleHttpClientService
     {
         protected override string BASE_URL => "https://rdap.org/ip/";
         public override string Name => "rdap";

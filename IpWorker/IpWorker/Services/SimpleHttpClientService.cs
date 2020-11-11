@@ -7,20 +7,21 @@ using System.Threading.Tasks;
 
 namespace IpWorker.Services
 {
-    abstract class SimpleGetService : IService
+    abstract class SimpleHttpClientService : IService
     {
         private HttpClient _client;
+        protected virtual HttpMethod Method { get; } = HttpMethod.Get;
         protected abstract string BASE_URL { get; }
         public abstract string Name { get; }
 
-        public SimpleGetService(HttpClient client)
+        public SimpleHttpClientService(HttpClient client)
         {
             _client = client;
         }
 
         public async Task<object> ProcessData(string data)
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, new Uri(BASE_URL + data));
+            var request = new HttpRequestMessage(Method, new Uri(BASE_URL + data));
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/json"));
 
             var response = await _client.SendAsync(request);

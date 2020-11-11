@@ -2,7 +2,7 @@
 
 namespace IpWorker.Services
 {
-    class GeoIpService : SimpleGetService
+    class GeoIpService : SimpleHttpClientService
     {
         protected override string BASE_URL => "https://geoip.me/";
         public override string Name => "geoip";

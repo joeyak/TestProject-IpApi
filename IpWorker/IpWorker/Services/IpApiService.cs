@@ -2,7 +2,7 @@
 
 namespace IpWorker.Services
 {
-    class IpApiService : SimpleGetService
+    class IpApiService : SimpleHttpClientService
     {
         public override string Name => "ipapi";
 
